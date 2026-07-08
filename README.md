@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-0.1.1-black?style=for-the-badge" alt="Version 0.1.1">
-  <img src="https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20Linux-2f6fed?style=for-the-badge" alt="Desktop platforms">
+  <img src="https://img.shields.io/badge/Version-0.4.0-black?style=for-the-badge" alt="Version 0.4.0">
+  <img src="https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20?style=for-the-badge" alt="Desktop platforms">
   <img src="https://img.shields.io/badge/Built%20with-Rust%20%2B%20Tauri-f36d21?style=for-the-badge" alt="Built with Rust and Tauri">
   <img src="https://img.shields.io/badge/License-Non--Commercial-lightgrey?style=for-the-badge" alt="Non-commercial license">
 </p>
@@ -34,7 +34,7 @@
 
 | 平台 | 推荐下载 |
 |------|----------|
-| Windows | `.exe` 安装包 |
+| Windows | `.exe` |
 | macOS | `.dmg` |
 安装后，你也可以在应用菜单中使用：
 

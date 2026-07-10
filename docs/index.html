@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvoForge — 具备进化能力的桌面智能体工作台</title>
+<meta name="description" content="EvoForge：一个高性能的具备进化能力的桌面智能体工作台。让 AI Agent 围绕长期目标持续工作、积累经验、调用工具、沉淀技能。">
+<meta property="og:title" content="EvoForge — 具备进化能力的桌面智能体工作台">
+<meta property="og:description" content="让 AI Agent 不只是聊天，而是在你的桌面上围绕长期目标持续工作、积累经验、调用工具、沉淀技能。">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #08090c;
+    --bg-soft: #0d0f14;
+    --panel: rgba(255,255,255,.03);
+    --border: rgba(255,255,255,.08);
+    --border-hi: rgba(255,255,255,.16);
+    --text: #e8eaf0;
+    --text-dim: #9aa1b0;
+    --text-faint: #6b7280;
+    --orange: #f36d21;
+    --blue: #4f8bff;
+    --grad: linear-gradient(120deg, #f36d21, #ff9d5c 40%, #4f8bff);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, Menlo, monospace;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  /* i18n */
+  body.en .zh { display: none !important; }
+  body:not(.en) .en { display: none !important; }
+
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* ambient background */
+  .glow {
+    position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background:
+      radial-gradient(600px 400px at 15% -5%, rgba(243,109,33,.14), transparent 60%),
+      radial-gradient(700px 500px at 85% 5%, rgba(79,139,255,.12), transparent 60%),
+      radial-gradient(900px 600px at 50% 110%, rgba(79,139,255,.07), transparent 60%);
+  }
+  .grid-bg {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, black 30%, transparent 75%);
+  }
+
+  /* nav */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: rgba(8,9,12,.72);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner { display: flex; align-items: center; gap: 28px; height: 60px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: .2px; }
+  .logo-mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: var(--grad);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 14px; font-weight: 800; color: #0b0c10;
+  }
+  .nav-links { display: flex; gap: 22px; font-size: 14px; color: var(--text-dim); }
+  .nav-links a:hover { color: var(--text); }
+  .nav-spacer { flex: 1; }
+  .lang-btn {
+    font-family: var(--mono); font-size: 12.5px; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--panel); color: var(--text-dim);
+    padding: 6px 12px; transition: .2s;
+  }
+  .lang-btn:hover { color: var(--text); border-color: var(--border-hi); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    border-radius: 10px; padding: 9px 18px; font-size: 14px; font-weight: 600;
+    transition: .2s; cursor: pointer; border: 1px solid transparent;
+  }
+  .btn-primary { background: linear-gradient(120deg, #f36d21, #e8590c); color: #fff; box-shadow: 0 4px 24px rgba(243,109,33,.35); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 32px rgba(243,109,33,.5); }
+  .btn-ghost { border-color: var(--border); color: var(--text-dim); background: var(--panel); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-hi); }
+  .btn-lg { padding: 13px 26px; font-size: 15.5px; border-radius: 12px; }
+
+  /* hero */
+  .hero { padding: 96px 0 72px; text-align: center; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; background: var(--panel); margin-bottom: 28px;
+  }
+  .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+  h1 {
+    font-size: clamp(38px, 6vw, 64px); font-weight: 800; line-height: 1.14;
+    letter-spacing: -.02em; margin-bottom: 22px;
+  }
+  h1 .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero-sub { font-size: clamp(16px, 2vw, 19px); color: var(--text-dim); max-width: 720px; margin: 0 auto 40px; }
+  .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .hero-meta { font-family: var(--mono); font-size: 12.5px; color: var(--text-faint); }
+  .hero-meta span + span::before { content: "·"; margin: 0 10px; }
+
+  /* terminal demo */
+  .term {
+    max-width: 780px; margin: 64px auto 0; text-align: left;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: rgba(13,15,20,.85); overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.02) inset;
+  }
+  .term-bar { display: flex; align-items: center; gap: 8px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.02); }
+  .term-bar i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .term-bar i:nth-child(1) { background: #ff5f57; } .term-bar i:nth-child(2) { background: #febc2e; } .term-bar i:nth-child(3) { background: #28c840; }
+  .term-title { margin-left: 8px; font-family: var(--mono); font-size: 12px; color: var(--text-faint); }
+  .term-body { padding: 20px 22px; font-family: var(--mono); font-size: 13.5px; line-height: 2; }
+  .term-body .u { color: var(--blue); }
+  .term-body .a { color: var(--text-dim); }
+  .term-body .ok { color: #34d399; }
+  .term-body .tool { color: var(--orange); }
+  .cursor { display: inline-block; width: 8px; height: 15px; background: var(--text-dim); vertical-align: -2px; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* sections */
+  section { padding: 88px 0; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--orange); margin-bottom: 14px;
+  }
+  h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 750; letter-spacing: -.015em; line-height: 1.2; margin-bottom: 16px; }
+  .section-sub { color: var(--text-dim); max-width: 680px; font-size: 16px; margin-bottom: 48px; }
+
+  /* pain cards */
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--panel); padding: 26px;
+    transition: border-color .25s, transform .25s, background .25s;
+  }
+  .card:hover { border-color: var(--border-hi); background: rgba(255,255,255,.045); transform: translateY(-2px); }
+  .card h3 { font-size: 16.5px; font-weight: 650; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: var(--text-dim); }
+  .card .ico {
+    width: 38px; height: 38px; border-radius: 10px; margin-bottom: 16px;
+    display: grid; place-items: center; font-size: 18px;
+    background: rgba(243,109,33,.1); border: 1px solid rgba(243,109,33,.22);
+  }
+  .card.blue .ico { background: rgba(79,139,255,.1); border-color: rgba(79,139,255,.25); }
+
+  .solution {
+    margin-top: 40px; border-radius: var(--radius); padding: 30px 34px;
+    border: 1px solid rgba(243,109,33,.3);
+    background: linear-gradient(120deg, rgba(243,109,33,.08), rgba(79,139,255,.06));
+    font-size: clamp(16px, 2vw, 19px); font-weight: 600; text-align: center;
+  }
+
+  /* philosophy */
+  .phil { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .phil .card { padding: 30px; }
+  .phil .num {
+    font-family: var(--mono); font-size: 13px; color: var(--orange);
+    margin-bottom: 12px; display: block;
+  }
+  .phil h3 { font-size: 18px; margin-bottom: 10px; }
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .tag {
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px;
+  }
+
+  /* security */
+  .sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+  pre.tree {
+    font-family: var(--mono); font-size: 13px; line-height: 1.9;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg-soft); padding: 24px; overflow-x: auto; color: var(--text-dim);
+  }
+  pre.tree .c { color: var(--text-faint); }
+  pre.tree .d { color: var(--blue); }
+  .sec-list { display: flex; flex-direction: column; gap: 14px; }
+  .sec-item {
+    display: flex; gap: 14px; padding: 16px 18px;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--panel);
+  }
+  .sec-item .mark { color: #34d399; font-weight: 700; flex-shrink: 0; }
+  .sec-item b { display: block; font-size: 14.5px; margin-bottom: 2px; }
+  .sec-item span { font-size: 13.5px; color: var(--text-dim); }
+
+  /* quick start */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .step { position: relative; }
+  .step .num-big {
+    font-family: var(--mono); font-size: 40px; font-weight: 800;
+    background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+    opacity: .9; margin-bottom: 10px; display: block; line-height: 1;
+  }
+  pre.code {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.8;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin-top: 14px;
+    overflow-x: auto; color: var(--text-dim); white-space: pre;
+  }
+  pre.code .k { color: var(--blue); } pre.code .s { color: #e8b04c; }
+
+  /* architecture */
+  .arch { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .arch-item {
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--panel); padding: 14px 16px; transition: .2s;
+  }
+  .arch-item:hover { border-color: rgba(243,109,33,.4); }
+  .arch-item code { font-family: var(--mono); font-size: 12.5px; color: var(--orange); display: block; margin-bottom: 3px; }
+  .arch-item span { font-size: 12.5px; color: var(--text-dim); }
+  .arch-note { margin-top: 22px; font-family: var(--mono); font-size: 12.5px; color: var(--text-faint); }
+
+  /* use cases */
+  .quotes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .quote {
+    font-size: 14.5px; color: var(--text-dim);
+    border: 1px solid var(--border); border-left: 3px solid var(--orange);
+    border-radius: 10px; background: var(--panel); padding: 16px 20px;
+  }
+  .quote::before { content: "“"; color: var(--orange); font-weight: 700; margin-right: 2px; }
+  .quote::after { content: "”"; color: var(--orange); font-weight: 700; margin-left: 2px; }
+
+  /* download */
+  .dl {
+    text-align: center; border: 1px solid var(--border); border-radius: 20px;
+    padding: 72px 32px;
+    background:
+      radial-gradient(500px 260px at 50% -20%, rgba(243,109,33,.14), transparent 70%),
+      var(--panel);
+  }
+  .dl h2 { margin-bottom: 12px; }
+  .dl-plat { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 36px; }
+  .dl-note { margin-top: 26px; font-size: 13px; color: var(--text-faint); }
+  .dl-note code { font-family: var(--mono); background: var(--bg-soft); border: 1px solid var(--border); padding: 2px 7px; border-radius: 6px; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--border); padding: 44px 0 56px; }
+  .foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .foot-left { max-width: 480px; }
+  .foot-left .logo { margin-bottom: 12px; }
+  .foot p { font-size: 13px; color: var(--text-faint); }
+  .foot-links { display: flex; gap: 22px; font-size: 13.5px; color: var(--text-dim); }
+  .foot-links a:hover { color: var(--text); }
+  .license-note {
+    margin-top: 28px; font-size: 12.5px; color: var(--text-faint);
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; background: var(--panel);
+  }
+
+  /* reveal animation */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.on { opacity: 1; transform: none; }
+
+  @media (max-width: 900px) {
+    .grid-3, .steps { grid-template-columns: 1fr 1fr; }
+    .arch { grid-template-columns: repeat(2, 1fr); }
+    .sec-grid { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+  }
+  @media (max-width: 600px) {
+    .grid-2, .grid-3, .steps, .phil, .quotes { grid-template-columns: 1fr; }
+    section { padding: 64px 0; }
+    .hero { padding: 64px 0 48px; }
+  }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="grid-bg"></div>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="logo" href="#top"><span class="logo-mark">Ef</span>EvoForge</a>
+    <div class="nav-links">
+      <a href="#why"><span class="zh">为什么</span><span class="en">Why</span></a>
+      <a href="#features"><span class="zh">核心能力</span><span class="en">Features</span></a>
+      <a href="#security"><span class="zh">安全</span><span class="en">Security</span></a>
+      <a href="#start"><span class="zh">快速开始</span><span class="en">Quick Start</span></a>
+      <a href="#arch"><span class="zh">架构</span><span class="en">Architecture</span></a>
+    </div>
+    <div class="nav-spacer"></div>
+    <button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
+    <a class="btn btn-primary" data-repo href="#"><span class="zh">下载</span><span class="en">Download</span></a>
+  </div>
+</nav>
+
+<header class="hero wrap" id="top">
+  <div class="hero-badge"><span class="dot"></span><span class="zh">v0.4.0 · Windows &amp; macOS 桌面应用</span><span class="en">v0.4.0 · Desktop app for Windows &amp; macOS</span></div>
+  <h1>
+    <span class="zh">让 AI Agent 在你的桌面上<br><span class="grad">持续进化</span></span>
+    <span class="en">An AI agent that <span class="grad">evolves</span><br>on your desktop</span>
+  </h1>
+  <p class="hero-sub">
+    <span class="zh">EvoForge 是一个高性能的具备进化能力的桌面智能体工作台。它不只是聊天——而是围绕长期目标持续工作、积累经验、安全调用工具、沉淀可复用技能。</span>
+    <span class="en">EvoForge is a high-performance desktop agent workbench. It doesn't just chat — it works toward long-term goals, accumulates experience, calls tools safely, and distills reusable skills.</span>
+  </p>
+  <div class="hero-cta">
+    <a class="btn btn-primary btn-lg" data-repo-releases href="#"><span class="zh">⬇ 前往 Releases 下载</span><span class="en">⬇ Download from Releases</span></a>
+    <a class="btn btn-ghost btn-lg" data-repo href="#"><span class="zh">查看 GitHub 仓库</span><span class="en">View on GitHub</span></a>
+  </div>
+  <div class="hero-meta">
+    <span>Rust + Tauri</span><span class="zh">本地优先</span><span class="en">Local-first</span><span class="zh">13 个模块化 crate</span><span class="en">13 modular crates</span><span>PolyForm Noncommercial</span>
+  </div>
+
+  <div class="term reveal">
+    <div class="term-bar"><i></i><i></i><i></i><span class="term-title">EvoForge — <span class="zh">目标会话</span><span class="en">goal session</span></span></div>
+    <div class="term-body">
+      <div class="u"><span class="zh">▸ 你：围绕这个仓库长期运行：理解架构、找出问题、分批改进，并每步验证。</span><span class="en">▸ You: Run long-term on this repo — understand the architecture, find issues, improve in batches, verify each step.</span></div>
+      <div class="a"><span class="zh">◂ EvoForge：已建立计划（4 个阶段）。恢复上次会话上下文…</span><span class="en">◂ EvoForge: Plan created (4 phases). Restoring context from previous sessions…</span></div>
+      <div class="tool"><span class="zh">⚒ 工具：session_search → 找到 3 条关于 sandbox 设计的历史结论</span><span class="en">⚒ Tool: session_search → found 3 prior conclusions about sandbox design</span></div>
+      <div class="tool"><span class="zh">⚒ 工具：terminal → cargo test --workspace（需确认 ✓ 已批准）</span><span class="en">⚒ Tool: terminal → cargo test --workspace (confirmation ✓ approved)</span></div>
+      <div class="ok"><span class="zh">✓ 阶段 1 完成 · 经验已沉淀为技能候选</span><span class="en">✓ Phase 1 complete · experience distilled into a skill candidate</span></div>
+      <div><span class="cursor"></span></div>
+    </div>
+  </div>
+</header>
+
+<section id="why">
+  <div class="wrap">
+    <div class="eyebrow"><span class="zh">为什么需要 EvoForge</span><span class="en">Why EvoForge</span></div>
+    <h2><span class="zh">现在的 AI Agent 很强，<br>但有四个老问题</span><span class="en">Today's AI agents are powerful,<br>but share four old problems</span></h2>
+    <div class="grid-2" style="margin-top:48px">
+      <div class="card reveal">
+        <div class="ico">🔁</div>
+        <h3><span class="zh">一次性太强，连续性太弱</span><span class="en">Strong in one shot, weak in continuity</span></h3>
+        <p><span class="zh">今天做完一轮，明天又要重新解释上下文，长期任务无从谈起。</span><span class="en">Finish a round today, re-explain everything tomorrow. Long-term work never compounds.</span></p>
+      </div>
+      <div class="card blue reveal">
+        <div class="ico">💬</div>
+        <h3><span class="zh">会聊天，但不像一个真正的工作台</span><span class="en">A chat box, not a real workbench</span></h3>
+        <p><span class="zh">文件、终端、Git、浏览器、记忆、技能、权限、计划往往散落在不同地方。</span><span class="en">Files, terminal, Git, browser, memory, skills, permissions and plans live scattered across tools.</span></p>
+      </div>
+      <div class="card blue reveal">
+        <div class="ico">🎛️</div>
+        <h3><span class="zh">能执行任务，但不够可控</span><span class="en">Executes tasks, but with little control</span></h3>
+        <p><span class="zh">长时间运行时，权限边界、确认机制、审计记录都很重要——却常常缺席。</span><span class="en">In long-running sessions, permission boundaries, confirmations and audit trails matter — yet are often missing.</span></p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🕳️</div>
+        <h3><span class="zh">能解决问题，但经验很难沉淀</span><span class="en">Solves problems, loses the experience</span></h3>
+        <p><span class="zh">一个复杂任务里踩过的坑，下次还可能重新踩一遍。</span><span class="en">Pitfalls hit in one complex task get hit all over again the next time.</span></p>
+      </div>
+    </div>
+    <div class="solution reveal">
+      <span class="zh">EvoForge 把 AI Agent 变成一个能长期协作、能积累经验、能安全调用工具的桌面工作台。</span>
+      <span class="en">EvoForge turns the AI agent into a desktop workbench that collaborates long-term, accumulates experience, and calls tools safely.</span>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="background: linear-gradient(rgba(255,255,255,.015), transparent);">
+  <div class="wrap">
+    <div class="eyebrow"><span class="zh">核心能力</span><span class="en">Core Capabilities</span></div>
+    <h2><span class="zh">像一个本地 Agent 操作系统</span><span class="en">Like a local agent operating system</span></h2>
+    <p class="section-sub"><span class="zh">你给出目标，它负责计划、执行、验证、恢复上下文，并在必要时向你确认。</span><span class="en">You state the goal; it plans, executes, verifies, restores context — and asks for confirmation when it matters.</span></p>
+    <div class="grid-3">
+      <div class="card reveal"><div class="ico">🎯</div><h3><span class="zh">长目标运行</span><span class="en">Long-goal execution</span></h3><p><span class="zh">围绕一个目标持续推进，维护计划、进度和状态。</span><span class="en">Drives toward a single goal over time, maintaining plan, progress and state.</span></p></div>
+      <div class="card blue reveal"><div class="ico">🧠</div><h3><span class="zh">记忆系统</span><span class="en">Memory system</span></h3><p><span class="zh">保存长期偏好、项目事实和有价值的上下文。</span><span class="en">Keeps long-term preferences, project facts and high-value context.</span></p></div>
+      <div class="card reveal"><div class="ico">⚒️</div><h3><span class="zh">内置工具集</span><span class="en">Built-in tools</span></h3><p><span class="zh">文件、终端、Git、浏览器、会话搜索、记忆、技能等一体化工具。</span><span class="en">Files, terminal, Git, browser, session search, memory and skills — integrated.</span></p></div>
+      <div class="card blue reveal"><div class="ico">🧩</div><h3><span class="zh">Skill 系统</span><span class="en">Skill system</span></h3><p><span class="zh">支持社区技能、本地技能、会话沉淀技能与 SKILL.md 兼容格式。</span><span class="en">Community skills, local skills, session-distilled skills — SKILL.md compatible.</span></p></div>
+      <div class="card reveal"><div class="ico">🔌</div><h3><span class="zh">MCP 扩展</span><span class="en">MCP extensions</span></h3><p><span class="zh">连接 MCP Server，把外部服务接入 Agent 工作流。</span><span class="en">Connect MCP servers to bring external services into the agent workflow.</span></p></div>
+      <div class="card blue reveal"><div class="ico">🌐</div><h3><span class="zh">浏览器能力</span><span class="en">Browser automation</span></h3><p><span class="zh">内置浏览器面板与自动化能力，处理真实网页任务。</span><span class="en">Built-in browser panel and automation for real web tasks.</span></p></div>
+      <div class="card reveal"><div class="ico">🛡️</div><h3><span class="zh">沙箱安全</span><span class="en">Sandboxed security</span></h3><p><span class="zh">在策略层、路径层和 OS 层限制工具执行边界。</span><span class="en">Tool execution bounded at the policy, path and OS levels.</span></p></div>
+      <div class="card blue reveal"><div class="ico">🔁</div><h3><span class="zh">GitHub 工作流</span><span class="en">GitHub workflow</span></h3><p><span class="zh">Git 状态检查、远程绑定、提交、推送与 PR 工作流。</span><span class="en">Status checks, remote binding, commits, pushes and PR workflows.</span></p></div>
+      <div class="card reveal"><div class="ico">🔎</div><h3><span class="zh">历史会话召回</span><span class="en">Session recall</span></h3><p><span class="zh">搜索原始会话文本，找回过去的事实、决策和上下文。</span><span class="en">Search raw session history to recover past facts, decisions and context.</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="philosophy">
+  <div class="wrap">
+    <div class="eyebrow"><span class="zh">设计理念</span><span class="en">Design Philosophy</span></div>
+    <h2><span class="zh">四条原则，贯穿始终</span><span class="en">Four principles, applied throughout</span></h2>
+    <div class="phil" style="margin-top:48px">
+      <div class="card reveal">
+        <span class="num">01</span>
+        <h3><span class="zh">围绕目标工作，而不是围绕单轮问答</span><span class="en">Work around goals, not single turns</span></h3>
+        <p><span class="zh">复杂任务很少能在一轮对话里完成。核心是长期目标、任务计划、状态恢复和验证闭环。</span><span class="en">Complex work rarely fits one conversation. The core loop is long-term goals, plans, state restoration and verification.</span></p>
+      </div>
+      <div class="card reveal">
+        <span class="num">02</span>
+        <h3><span class="zh">记忆应该克制，技能应该可复用</span><span class="en">Memory should be restrained; skills, reusable</span></h3>
+        <p><span class="zh">不是所有历史都应该变成记忆。EvoForge 严格区分三层：</span><span class="en">Not all history deserves to become memory. EvoForge separates three layers:</span></p>
+        <div class="tags">
+          <span class="tag"><span class="zh">记忆 = 稳定事实</span><span class="en">Memory = stable facts</span></span>
+          <span class="tag"><span class="zh">会话搜索 = 历史过程</span><span class="en">Session search = past process</span></span>
+          <span class="tag"><span class="zh">技能 = 可复用方法</span><span class="en">Skills = reusable methods</span></span>
+        </div>
+      </div>
+      <div class="card reveal">
+        <span class="num">03</span>
+        <h3><span class="zh">能力越强，权限越要清楚</span><span class="en">More capability demands clearer permissions</span></h3>
+        <p><span class="zh">能写文件、跑命令、操作 Git 和浏览器的 Agent 必须有边界。权限策略、用户确认、沙箱和审计是核心能力，不是事后补丁。</span><span class="en">An agent that writes files, runs commands and drives Git and a browser must have boundaries. Permission policy, confirmation, sandboxing and audit are core features — not afterthoughts.</span></p>
+      </div>
+      <div class="card reveal">
+        <span class="num">04</span>
+        <h3><span class="zh">桌面应用应该服务真实工作流</span><span class="en">A desktop app should serve real workflows</span></h3>
+        <p><span class="zh">优先支持本地工作区、文件、终端、GitHub、浏览器、MCP 和长期运行。不是纯网页聊天，也不是只服务 demo 的玩具。</span><span class="en">Local workspaces, files, terminal, GitHub, browser, MCP and long-running goals come first. Not a web chat toy built for demos.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="security" style="background: linear-gradient(rgba(255,255,255,.015), transparent);">
+  <div class="wrap">
+    <div class="eyebrow"><span class="zh">安全与隐私</span><span class="en">Security &amp; Privacy</span></div>
+    <h2><span class="zh">本地优先，边界清楚</span><span class="en">Local-first, with clear boundaries</span></h2>
+    <p class="section-sub"><span class="zh">会话、技能、记忆和配置默认保存在本机。模型请求只发送到你自己配置的服务商。</span><span class="en">Sessions, skills, memories and config stay on your machine by default. Model requests go only to the provider you configure.</span></p>
+    <div class="sec-grid">
+      <pre class="tree reveal">~/.evoforge/
+├── config.toml          <span class="c"># <span class="zh">模型服务与应用配置</span><span class="en">model &amp; app config</span></span>
+├── mcp.json             <span class="c"># <span class="zh">MCP 服务配置</span><span class="en">MCP server config</span></span>
+├── <span class="d">sessions/</span>            <span class="c"># <span class="zh">原始会话记录</span><span class="en">raw session logs</span></span>
+├── <span class="d">memories/</span>            <span class="c"># <span class="zh">记忆</span><span class="en">memories</span></span>
+├── <span class="d">skills/</span>              <span class="c"># <span class="zh">技能</span><span class="en">skills</span></span>
+└── reflect-log.jsonl    <span class="c"># <span class="zh">反思与审计记录</span><span class="en">reflection &amp; audit log</span></span></pre>
+      <div class="sec-list">
+        <div class="sec-item reveal"><span class="mark">✓</span><div><b><span class="zh">本地优先</span><span class="en">Local-first</span></b><span><span class="zh">数据默认保存在本机，不经过第三方服务器。</span><span class="en">Data lives on your machine by default — no third-party servers in between.</span></span></div></div>
+        <div class="sec-item reveal"><span class="mark">✓</span><div><b><span class="zh">权限确认</span><span class="en">Permission confirmation</span></b><span><span class="zh">高风险工具调用会根据策略请求你的确认。</span><span class="en">High-risk tool calls request your confirmation per policy.</span></span></div></div>
+        <div class="sec-item reveal"><span class="mark">✓</span><div><b><span class="zh">OS 级沙箱</span><span class="en">OS-level sandbox</span></b><span><span class="zh">终端和文件工具受工作区与操作系统级边界约束。</span><span class="en">Terminal and file tools are constrained by workspace and OS-level boundaries.</span></span></div></div>
+        <div class="sec-item reveal"><span class="mark">✓</span><div><b><span class="zh">审计记录</span><span class="en">Audit trail</span></b><span><span class="zh">反思、记忆和技能候选保留可追溯记录。</span><span class="en">Reflections, memories and skill candidates keep a traceable record.</span></span></div></div>
+        <div class="sec-item reveal"><span class="mark">✓</span><div><b><span class="zh">模型可选</span><span class="en">Your choice of model</span></b><span><span class="zh">按自己的隐私与合规要求选择模型服务商。</span><span class="en">Pick the model provider that fits your privacy and compliance needs.</span></span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <div class="eyebrow"><span class="zh">快速开始</span><span class="en">Quick Start</span></div>
+    <h2><span class="zh">三步开始工作</span><span class="en">Working in three steps</span></h2>
+    <div class="steps" style="margin-top:48px">
+      <div class="card step reveal">
+        <span class="num-big">1</span>
+        <h3><span class="zh">下载并安装</span><span class="en">Download &amp; install</span></h3>
+        <p><span class="zh">前往 Releases 下载适合你系统的安装包：Windows（.exe / .msi）或 macOS（.dmg）。</span><span class="en">Grab the installer from Releases: Windows (.exe / .msi) or macOS (.dmg).</span></p>
+      </div>
+      <div class="card step reveal">
+        <span class="num-big">2</span>
+        <h3><span class="zh">配置模型服务</span><span class="en">Configure a model</span></h3>
+        <p><span class="zh">首次启动会引导你配置。支持 OpenAI-compatible、Anthropic、DeepSeek、Qwen、Gemini、OpenRouter、Ollama 等。</span><span class="en">First launch walks you through it. OpenAI-compatible, Anthropic, DeepSeek, Qwen, Gemini, OpenRouter, Ollama and more.</span></p>
+        <pre class="code"><span class="k">default_provider</span> = <span class="s">"openai_compatible"</span>
+
+[<span class="k">providers.openai_compatible</span>]
+<span class="k">base_url</span> = <span class="s">"https://api.example.com/v1"</span>
+<span class="k">api_key</span>  = <span class="s">"sk-..."</span>
+<span class="k">model</span>    = <span class="s">"your-model-name"</span></pre>
+      </div>
+      <div class="card step reveal">
+        <span class="num-big">3</span>
+        <h3><span class="zh">给出一个目标</span><span class="en">State a goal</span></h3>
+        <p><span class="zh">正常描述目标即可，不需要记住内部工具名。EvoForge 会拆解任务、执行工具、汇报进展。</span><span class="en">Just describe the goal — no internal tool names needed. EvoForge decomposes, executes and reports.</span></p>
+        <pre class="code"><span class="zh">帮我检查这个项目，修复构建错误，
+并跑一遍测试。</span><span class="en">Check this project, fix the build
+errors, and run the tests.</span></pre>
+      </div>
+    </div>
+
+    <div style="margin-top:56px">
+      <div class="eyebrow"><span class="zh">装好之后能做什么</span><span class="en">What can it do</span></div>
+      <div class="quotes" style="margin-top:20px">
+        <div class="quote reveal"><span class="zh">继续上次那个技能社区安装问题</span><span class="en">Continue that skill-community install issue from last time</span></div>
+        <div class="quote reveal"><span class="zh">修复这个 Rust 编译错误，跑测试确认</span><span class="en">Fix this Rust compile error and confirm with tests</span></div>
+        <div class="quote reveal"><span class="zh">帮我把这个会话里的经验沉淀成技能</span><span class="en">Distill the experience from this session into a skill</span></div>
+        <div class="quote reveal"><span class="zh">搜索历史会话，找出我们之前关于 sandbox 的设计结论</span><span class="en">Search past sessions for our earlier sandbox design conclusions</span></div>
+        <div class="quote reveal"><span class="zh">打开浏览器看这个页面布局，帮我做 UI 复盘</span><span class="en">Open the browser, look at this page layout, and review the UI</span></div>
+        <div class="quote reveal"><span class="zh">连接这个 MCP Server，让 Agent 可以访问我的内部工具</span><span class="en">Connect this MCP server so the agent can reach my internal tools</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="arch" style="background: linear-gradient(rgba(255,255,255,.015), transparent);">
+  <div class="wrap">
+    <div class="eyebrow"><span class="zh">技术架构</span><span class="en">Architecture</span></div>
+    <h2><span class="zh">Rust 构建，模块清晰</span><span class="en">Built in Rust, cleanly modular</span></h2>
+    <p class="section-sub"><span class="zh">13 个职责分明的 workspace crate。全工作区禁用 unsafe（仅 OS 沙箱层例外并有审计说明），核心路径覆盖近 300 个单元测试。</span><span class="en">13 workspace crates with clear responsibilities. `unsafe` is forbidden workspace-wide (audited exception: the OS sandbox layer). Nearly 300 unit tests cover the core paths.</span></p>
+    <div class="arch">
+      <div class="arch-item reveal"><code>evoforge-gui</code><span><span class="zh">桌面应用：Tauri + React</span><span class="en">Desktop app: Tauri + React</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-core</code><span><span class="zh">会话、消息与 Provider 抽象</span><span class="en">Sessions, messages, provider abstraction</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-turn</code><span><span class="zh">工具循环、权限与执行治理</span><span class="en">Tool loop, permissions, governance</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-llm</code><span><span class="zh">多模型 Provider 实现</span><span class="en">Multi-provider LLM clients</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-tools</code><span><span class="zh">内置工具集合</span><span class="en">Built-in tool suite</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-browser</code><span><span class="zh">浏览器自动化（CDP）</span><span class="en">Browser automation (CDP)</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-sandbox</code><span><span class="zh">OS 级沙箱</span><span class="en">OS-level sandboxing</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-mcp</code><span><span class="zh">MCP 客户端</span><span class="en">MCP client</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-skills</code><span><span class="zh">技能加载、安装与匹配</span><span class="en">Skill loading, install &amp; matching</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-memory</code><span><span class="zh">记忆存储与检索</span><span class="en">Memory store &amp; retrieval</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-reflect</code><span><span class="zh">反思与技能候选生成</span><span class="en">Reflection &amp; skill candidates</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-store</code><span><span class="zh">本地文件存储</span><span class="en">Local file storage</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-search</code><span><span class="zh">会话检索</span><span class="en">Session search</span></span></div>
+      <div class="arch-item reveal"><code>evoforge-launcher</code><span><span class="zh">根目录启动器</span><span class="en">Root launcher</span></span></div>
+    </div>
+    <p class="arch-note">Rust 1.78+ · Tauri 2 · React · tokio · chromiumoxide (CDP) · rmcp (MCP)</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="dl reveal">
+      <div class="eyebrow" style="justify-content:center"><span class="zh">开始使用</span><span class="en">Get Started</span></div>
+      <h2><span class="zh">在你的桌面上，开始一个长期目标</span><span class="en">Start a long-term goal on your desktop</span></h2>
+      <p class="section-sub" style="margin:0 auto"><span class="zh">建议只从本仓库 Releases 页面下载 EvoForge，不要运行来源不明的安装包。</span><span class="en">Only download EvoForge from this repository's Releases page. Never run installers from unknown sources.</span></p>
+      <div class="dl-plat">
+        <a class="btn btn-primary btn-lg" data-repo-releases href="#">Windows · .exe / .msi</a>
+        <a class="btn btn-primary btn-lg" data-repo-releases href="#">macOS · .dmg</a>
+      </div>
+      <p class="dl-note"><span class="zh">安装后可在应用菜单中使用</span><span class="en">After installing, check for updates in-app via</span> <code><span class="zh">帮助 → 检查更新</span><span class="en">Help → Check for Updates</span></code></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div class="foot-left">
+      <a class="logo" href="#top"><span class="logo-mark">Ef</span>EvoForge</a>
+      <p><span class="zh">一个高性能的具备进化能力的桌面智能体工作台。本仓库用于版本发布、更新说明和问题追踪。</span><span class="en">A high-performance, evolving desktop agent workbench. This repository hosts releases, changelogs and issue tracking.</span></p>
+    </div>
+    <div class="foot-links">
+      <a data-repo-releases href="#">Releases</a>
+      <a data-repo-issues href="#"><span class="zh">问题反馈</span><span class="en">Issues</span></a>
+      <a href="https://x.com/ItsDamianWu" target="_blank" rel="noopener">@ItsDamianWu</a>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="license-note">
+      <span class="zh">EvoForge 不是开源软件。本仓库用于发布和说明产品，不表示你可以复制、修改、再分发或商业化使用其中的代码或产物。本项目使用 PolyForm Noncommercial License 1.0.0。</span>
+      <span class="en">EvoForge is not open-source software. This repository publishes and documents the product; it does not grant rights to copy, modify, redistribute or commercialize its code or artifacts. Licensed under PolyForm Noncommercial License 1.0.0.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ── Repository links ─────────────────────────────────────────────
+  // 把下面这行换成你的 GitHub 仓库地址即可，所有按钮会自动指向正确页面。
+  // Replace with your GitHub repository URL; all buttons update automatically.
+  const REPO = "https://github.com/smallchao/EvoForge";
+
+  document.querySelectorAll("[data-repo]").forEach(a => a.href = REPO);
+  document.querySelectorAll("[data-repo-releases]").forEach(a => a.href = REPO + "/releases");
+  document.querySelectorAll("[data-repo-issues]").forEach(a => a.href = REPO + "/issues");
+
+  // ── Language toggle ──────────────────────────────────────────────
+  function applyLang(lang) {
+    document.body.classList.toggle("en", lang === "en");
+    document.documentElement.lang = lang === "en" ? "en" : "zh-CN";
+    document.getElementById("langBtn").textContent = lang === "en" ? "中文" : "EN";
+    document.title = lang === "en"
+      ? "EvoForge — An evolving desktop agent workbench"
+      : "EvoForge — 具备进化能力的桌面智能体工作台";
+    try { localStorage.setItem("evoforge-lang", lang); } catch (e) {}
+  }
+  function toggleLang() {
+    applyLang(document.body.classList.contains("en") ? "zh" : "en");
+  }
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem("evoforge-lang"); } catch (e) {}
+    if (!saved) saved = (navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en";
+    applyLang(saved);
+  })();
+
+  // ── Scroll reveal ────────────────────────────────────────────────
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("on"); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+</script>
+</body>
+</html>

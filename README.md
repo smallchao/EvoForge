@@ -1,4 +1,4 @@
-<h1 align="center">EvoForge</h1>
+<h1 align="center">EvoForge-Agent</h1>
 
 <p align="center">
   <strong>一个高性能的具备进化能力的桌面智能体工作台</strong>
